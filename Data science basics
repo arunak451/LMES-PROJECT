@@ -1,0 +1,110 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the data
+df = pd.read_csv('data (1).csv')
+
+# Initial inspection
+print(df.shape)
+print(df.head())
+print(df.info())
+print(df.describe())
+
+# Check for missing values
+print("Missing values")
+print(df.isnull().sum())
+
+# Check for duplicates
+print("Number of duplicates:"), df.duplicated().sum())
+
+# Check for outliers using IQR method
+def detect_outliers(df, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    outliers = df[(df[column] < lower_bound) | (df[column] > upper_bound)]
+    return outliers
+
+for col in df.columns:
+    outliers = detect_outliers(df, col)
+    print("Outliers in {col}: {len(outliers)}")
+    if len(outliers) > 0:
+        print(outliers[[col]].head())
+        
+# Histograms for all numerical features
+plt.figure(figsize=(15, 10))
+for i, col in enumerate(df.columns, 1):
+    plt.subplot(2, 3, i)
+    sns.histplot(df[col], kde=True)
+    plt.title('HISTOGRAM OF DATASET')
+plt.tight_layout()
+plt.show()
+
+# Boxplots for all numerical features
+plt.figure(figsize=(15, 10))
+for i, col in enumerate(df.columns, 1):
+    plt.subplot(2, 3, i)
+    sns.boxplot(y=df[col])
+    plt.title('Boxplot')
+plt.tight_layout()
+plt.show()
+
+# Scatter plots against Grades (target variable)
+plt.figure(figsize=(15, 10))
+for i, col in enumerate(df.columns[:-1], 1):  # Exclude Grades
+    plt.subplot(2, 2, i)
+    sns.scatterplot(x=df[col], y=df['Grades'])
+    plt.title('HOURS, vs Grades')
+plt.tight_layout()
+plt.show()
+
+# Correlation matrix
+corr_matrix = df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0)
+plt.title('Correlation Matrix')
+plt.show()
+
+
+# Pairplot for key relationships
+sns.pairplot(df, diag_kind='kde')
+plt.show()
+
+# Interaction between study hours and sleep hours on grades
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='Study Hours', y='Sleep Hours', hue='Grades', data=df, palette='viridis')
+plt.title('Study Hours vs Sleep Hours colored by Grades')
+plt.show()
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+
+# Feature engineering - create a new feature combining study and sleep hours
+df['Study_Sleep_Ratio'] = df['Study Hours'] / df['Sleep Hours']
+
+# Check correlation of new feature
+print("Correlation of new feature with Grades:", df['Study_Sleep_Ratio'].corr(df['Grades']))
+
+# Split into features and target
+X = df.drop('Grades', axis=1)
+y = df['Grades']
+
+# Split into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Convert back to DataFrame for better visualization
+X_train_scaled = pd.DataFrame(X_train_scaled, columns=X.columns)
+X_test_scaled = pd.DataFrame(X_test_scaled, columns=X.columns)
+
+print("\nScaled training data sample:")
+print(X_train_scaled.head())
